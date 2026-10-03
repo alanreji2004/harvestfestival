@@ -1329,3 +1329,38 @@ html, body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Revoke Button Styling (Subtle & Secondary) */
+.btn-revoke-subtle {
+  display: inline-block;
+  width: 100%;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #c53030;
+  background-color: transparent;
+  border: 1px solid #feb2b2;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.btn-revoke-subtle:hover {
+  background-color: #fff5f5;
+  border-color: #e53e3e;
+  color: #9b2c2c;
+}
+
+.badge-subtle-warning {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #dd6b20;
+  background-color: #fffaf0;
+  border: 1px solid #fbd38d;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 3px;
+}

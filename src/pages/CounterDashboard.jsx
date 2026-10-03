@@ -4,8 +4,9 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Loading from '../components/Loading';
 import CollectModal from '../components/CollectModal';
+import RevokeModal from '../components/RevokeModal';
 import { getActiveCounter, clearActiveCounter } from '../utils/counterSession';
-import { subscribeToOrders, collectOrder } from '../firebase/orders';
+import { subscribeToOrders, collectOrder, revokeOrderCollection } from '../firebase/orders';
 import { formatCurrency, formatDate } from '../utils/validation';
 
 const CounterDashboard = () => {
@@ -20,6 +21,11 @@ const CounterDashboard = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [modalError, setModalError] = useState('');
   const [toastMessage, setToastMessage] = useState({ type: '', text: '' });
+
+  // Modal states for revoke
+  const [revokeTarget, setRevokeTarget] = useState(null);
+  const [isRevoking, setIsRevoking] = useState(false);
+  const [revokeError, setRevokeError] = useState('');
 
   const navigate = useNavigate();
 
@@ -140,6 +146,27 @@ const CounterDashboard = () => {
       setModalError(err.message || 'Failed to process collection.');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // Handle Revoking Collection via Modal
+  const handleConfirmRevoke = async () => {
+    if (!revokeTarget || !activeCounter) return;
+    setIsRevoking(true);
+    setRevokeError('');
+    setToastMessage({ type: '', text: '' });
+
+    try {
+      await revokeOrderCollection(revokeTarget.id, activeCounter);
+      setToastMessage({
+        type: 'success',
+        text: `Collection for Token #${revokeTarget.tokenNumber} (${revokeTarget.name}) was successfully REVOKED. It is now returned to Not Collected.`
+      });
+      setRevokeTarget(null);
+    } catch (err) {
+      setRevokeError(err.message || 'Failed to revoke order collection.');
+    } finally {
+      setIsRevoking(false);
     }
   };
 
@@ -298,9 +325,23 @@ const CounterDashboard = () => {
 
                   <div className="order-counter-card-footer">
                     {isCollected ? (
-                      <button type="button" className="btn btn-secondary btn-block" disabled>
-                        COLLECTED
-                      </button>
+                      <div style={{ width: '100%' }}>
+                        <button type="button" className="btn btn-secondary btn-block" disabled>
+                          COLLECTED
+                        </button>
+                        {ord.collectedByCounter === activeCounter && (
+                          <button 
+                            type="button" 
+                            className="btn-revoke-subtle"
+                            onClick={() => {
+                              setRevokeTarget(ord);
+                              setRevokeError('');
+                            }}
+                          >
+                            Revoke Collection
+                          </button>
+                        )}
+                      </div>
                     ) : (
                       <button 
                         type="button" 
@@ -332,6 +373,19 @@ const CounterDashboard = () => {
         onCancel={() => {
           setTargetOrder(null);
           setModalError('');
+        }}
+      />
+
+      {/* Revoke Confirmation Modal */}
+      <RevokeModal
+        isOpen={!!revokeTarget}
+        order={revokeTarget}
+        isLoading={isRevoking}
+        error={revokeError}
+        onConfirm={handleConfirmRevoke}
+        onCancel={() => {
+          setRevokeTarget(null);
+          setRevokeError('');
         }}
       />
 

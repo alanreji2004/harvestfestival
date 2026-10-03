@@ -123,11 +123,20 @@ export const collectOrder = async (orderId, paymentMode, counterName) => {
         throw new Error(`This order has already been collected at ${collector}.`);
       }
 
+      const existingHistory = Array.isArray(orderData.collectionHistory) ? orderData.collectionHistory : [];
+      const historyEntry = {
+        action: 'collected',
+        paymentMode: paymentMode.toLowerCase(),
+        counter: counterName,
+        timestamp: new Date().toISOString()
+      };
+
       const collectionPayload = {
         collectionStatus: 'collected',
         paymentMode: paymentMode.toLowerCase(),
         collectedAt: serverTimestamp(),
-        collectedByCounter: counterName
+        collectedByCounter: counterName,
+        collectionHistory: [...existingHistory, historyEntry]
       };
 
       transaction.update(orderRef, collectionPayload);
@@ -143,6 +152,69 @@ export const collectOrder = async (orderId, paymentMode, counterName) => {
   } catch (error) {
     console.error('Error marking order as collected:', error);
     throw new Error(error.message || 'Failed to process collection. Please try again.');
+  }
+};
+
+/**
+ * Revokes an order collection using an atomic Firestore transaction.
+ * Resets collectionStatus to "pending", clears paymentMode, collectedAt, collectedByCounter,
+ * and records an audit log entry in collectionHistory.
+ * @param {string} orderId - Document ID of order
+ * @param {string} performedBy - "Admin" or Counter name e.g. "Counter 2"
+ */
+export const revokeOrderCollection = async (orderId, performedBy = 'Admin') => {
+  if (!orderId) throw new Error('Order ID is required.');
+
+  try {
+    const orderRef = doc(db, 'orders', orderId);
+
+    const updatedData = await runTransaction(db, async (transaction) => {
+      const orderSnap = await transaction.get(orderRef);
+      
+      if (!orderSnap.exists()) {
+        throw new Error('Order not found in database.');
+      }
+
+      const orderData = orderSnap.data();
+
+      // Guard against revoking an order that is not currently collected
+      if (orderData.collectionStatus !== 'collected') {
+        throw new Error('This order is not currently marked as collected or has already been revoked.');
+      }
+
+      // Permission check: Counter staff can only revoke orders collected by their own counter
+      if (performedBy !== 'Admin' && orderData.collectedByCounter && orderData.collectedByCounter !== performedBy) {
+        throw new Error(`This order was collected by ${orderData.collectedByCounter}. You can only revoke orders collected by ${performedBy}.`);
+      }
+
+      const existingHistory = Array.isArray(orderData.collectionHistory) ? orderData.collectionHistory : [];
+      const historyEntry = {
+        action: 'revoked',
+        counter: orderData.collectedByCounter || 'Unknown',
+        revokedBy: performedBy,
+        timestamp: new Date().toISOString()
+      };
+
+      const revokePayload = {
+        collectionStatus: 'pending',
+        paymentMode: null,
+        collectedAt: null,
+        collectedByCounter: null,
+        collectionHistory: [...existingHistory, historyEntry]
+      };
+
+      transaction.update(orderRef, revokePayload);
+
+      return {
+        ...orderData,
+        ...revokePayload
+      };
+    });
+
+    return { success: true, order: updatedData };
+  } catch (error) {
+    console.error('Error revoking order collection:', error);
+    throw new Error(error.message || 'Failed to revoke order collection.');
   }
 };
 

@@ -5,7 +5,8 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Loading from '../components/Loading';
 import ConfirmModal from '../components/ConfirmModal';
-import { subscribeToOrders, deleteOrder, resetOrderCounter, getOrderCounter } from '../firebase/orders';
+import RevokeModal from '../components/RevokeModal';
+import { subscribeToOrders, deleteOrder, resetOrderCounter, getOrderCounter, revokeOrderCollection } from '../firebase/orders';
 import { formatCurrency, formatDate } from '../utils/validation';
 import { exportOrdersToExcel } from '../utils/exportExcel';
 import { VALID_COUNTERS } from '../utils/counterSession';
@@ -24,6 +25,9 @@ const AdminDashboard = () => {
   // Modal states
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [revokeTarget, setRevokeTarget] = useState(null);
+  const [isRevoking, setIsRevoking] = useState(false);
 
   const [showResetModal, setShowResetModal] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -168,6 +172,24 @@ const AdminDashboard = () => {
       totalAmt: gpayAmt + cashAmt
     };
   });
+
+  // Handle Revoking Order Collection
+  const confirmRevokeOrder = async () => {
+    if (!revokeTarget) return;
+    setIsRevoking(true);
+    setActionError('');
+    setActionSuccess('');
+
+    try {
+      await revokeOrderCollection(revokeTarget.id, 'Admin');
+      setActionSuccess(`Collection for Token #${revokeTarget.tokenNumber} (${revokeTarget.name}) was successfully REVOKED.`);
+      setRevokeTarget(null);
+    } catch (err) {
+      setActionError(err.message || 'Failed to revoke collection.');
+    } finally {
+      setIsRevoking(false);
+    }
+  };
 
   // Handle Order Deletion
   const confirmDeleteOrder = async () => {
@@ -478,6 +500,11 @@ const AdminDashboard = () => {
                           <span className={`status-pill ${isCollected ? 'pill-success' : 'pill-pending'}`}>
                             {isCollected ? 'Collected' : 'Pending'}
                           </span>
+                          {ord.collectionHistory?.some(h => h.action === 'revoked') && (
+                            <div>
+                              <span className="badge-subtle-warning">Previously Revoked</span>
+                            </div>
+                          )}
                         </td>
                         <td>
                           {isCollected ? (
@@ -499,13 +526,26 @@ const AdminDashboard = () => {
                           )}
                         </td>
                         <td>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-danger-outline"
-                            onClick={() => setDeleteTarget(ord)}
-                          >
-                            Delete
-                          </button>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            {isCollected && (
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline"
+                                style={{ color: '#c53030', borderColor: '#feb2b2', fontSize: '0.75rem', padding: '2px 8px' }}
+                                onClick={() => setRevokeTarget(ord)}
+                              >
+                                Revoke
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-danger-outline"
+                              style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                              onClick={() => setDeleteTarget(ord)}
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -543,6 +583,16 @@ const AdminDashboard = () => {
         isLoading={isResetting}
         onConfirm={confirmResetCounter}
         onCancel={() => setShowResetModal(false)}
+      />
+
+      {/* Revoke Confirmation Modal */}
+      <RevokeModal
+        isOpen={!!revokeTarget}
+        order={revokeTarget}
+        isLoading={isRevoking}
+        error={actionError}
+        onConfirm={confirmRevokeOrder}
+        onCancel={() => setRevokeTarget(null)}
       />
 
       <Footer />
