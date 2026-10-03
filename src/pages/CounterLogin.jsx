@@ -2,22 +2,29 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import CounterPasswordModal from '../components/CounterPasswordModal';
 import { VALID_COUNTERS, setActiveCounter } from '../utils/counterSession';
 
 const CounterLogin = () => {
   const [selectedCounter, setSelectedCounter] = useState('Counter 1');
   const [error, setError] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const navigate = useNavigate();
 
-  const handleEnterCounter = (e) => {
+  const handleOpenPasswordModal = (e) => {
     e.preventDefault();
     if (!selectedCounter) {
       setError('Please select a counter.');
       return;
     }
+    setError('');
+    setShowPasswordModal(true);
+  };
 
+  const handlePasswordSuccess = () => {
     try {
       setActiveCounter(selectedCounter);
+      setShowPasswordModal(false);
       navigate('/counter');
     } catch (err) {
       setError('Failed to select counter.');
@@ -40,7 +47,7 @@ const CounterLogin = () => {
             </div>
           )}
 
-          <form onSubmit={handleEnterCounter}>
+          <form onSubmit={handleOpenPasswordModal}>
             <div className="form-group mb-4">
               <label htmlFor="counter-select" className="form-label font-semibold">
                 Select Counter
@@ -84,6 +91,15 @@ const CounterLogin = () => {
           </form>
         </div>
       </main>
+
+      {/* Security Password Verification Modal */}
+      <CounterPasswordModal
+        isOpen={showPasswordModal}
+        counterName={selectedCounter}
+        onSuccess={handlePasswordSuccess}
+        onCancel={() => setShowPasswordModal(false)}
+      />
+
       <Footer />
     </div>
   );
