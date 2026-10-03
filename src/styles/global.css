@@ -1254,12 +1254,15 @@ html, body {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(15, 23, 42, 0.5);
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 1rem;
+  padding: 0.75rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-content {
@@ -1267,8 +1270,12 @@ html, body {
   border-radius: var(--radius-lg);
   max-width: 480px;
   width: 100%;
+  max-height: 90vh;
+  max-height: 90dvh;
+  overflow-y: auto;
+  box-sizing: border-box;
   padding: 1.75rem;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   border: 1px solid var(--border-color);
 }
 
@@ -1301,32 +1308,168 @@ html, body {
   gap: 0.75rem;
 }
 
-/* Responsive Rules */
+/* Comprehensive Device Responsiveness Rules */
+@media (max-width: 768px) {
+  .admin-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .admin-filter-bar .filter-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+  .admin-filter-bar .filter-select {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 @media (max-width: 640px) {
   .app-header {
-    padding: 1.5rem 1rem 1rem;
+    padding: 1.25rem 1rem 0.85rem;
   }
   .event-title {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
   }
   .order-card, .success-card, .admin-login-card, .counter-login-card {
-    padding: 1.25rem;
+    padding: 1rem;
   }
   .token-number {
-    font-size: 3.25rem;
+    font-size: 2.75rem;
   }
-  .admin-header-bar, .counter-header-bar {
+  
+  /* Modal Responsiveness for Mobile */
+  .modal-backdrop {
+    padding: 0.5rem;
+  }
+  .modal-content, .collect-modal-content {
+    padding: 1.15rem 1rem;
+    border-radius: 12px;
+    max-width: 100%;
+  }
+  .modal-title {
+    font-size: 1.125rem;
+  }
+  .token-summary-card {
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 1rem;
+  }
+  .token-summary-token {
+    font-size: 1.125rem;
+  }
+  .summary-field {
+    font-size: 0.85rem;
+  }
+  .price-value {
+    font-size: 1.05rem;
+  }
+  .payment-mode-options {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .payment-option {
+    padding: 0.75rem 0.4rem;
+    min-height: 48px;
+    border-radius: 8px;
+  }
+  .payment-title {
+    font-size: 0.9375rem;
+  }
+  .modal-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  .modal-actions .btn {
+    flex: 1;
+    padding: 0.7rem 0.5rem;
+    font-size: 0.875rem;
+    justify-content: center;
+  }
+
+  /* Counter Page Mobile Enhancements */
+  .counter-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .counter-main-title {
+    font-size: 1.35rem;
+  }
+  .counter-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    width: 100%;
+  }
+  .search-box {
+    width: 100%;
+    min-width: 0;
+  }
+  .search-input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .status-filter-tabs {
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .status-filter-tabs .tab-btn {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem 0.2rem;
+    font-size: 0.8125rem;
+  }
+  .counter-orders-grid {
+    grid-template-columns: 1fr;
+    gap: 0.875rem;
+  }
+  .order-counter-card {
+    padding: 1rem;
+  }
+
+  /* Admin Header & Actions */
+  .admin-header-bar {
     flex-direction: column;
     align-items: stretch;
   }
   .admin-actions {
     flex-direction: column;
+    width: 100%;
   }
   .admin-actions .btn {
     width: 100%;
   }
   .counter-grid-selection {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Extra Small Phone Stats Grid (2 Columns for cleanliness) */
+  .stats-grid, .my-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  .stat-card, .my-counter-stats-card {
+    padding: 0.75rem 0.65rem;
+  }
+  .stat-value {
+    font-size: 1.35rem;
+  }
+  .stat-label, .my-stat-label {
+    font-size: 0.6875rem;
+  }
+  .my-stat-val {
+    font-size: 1.1rem;
+  }
+  .payment-mode-options {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
