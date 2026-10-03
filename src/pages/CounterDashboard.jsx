@@ -59,21 +59,49 @@ const CounterDashboard = () => {
     navigate('/counter/login');
   };
 
-  // Filter logic
-  const filteredOrders = orders.filter((order) => {
-    // Status Filter
-    if (statusFilter === 'Pending' && order.collectionStatus === 'collected') return false;
-    if (statusFilter === 'Collected' && order.collectionStatus !== 'collected') return false;
+  // Filter & priority sort logic
+  const q = searchQuery.toLowerCase().trim();
 
-    // Search Query Filter
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase().trim();
-    const tokenStr = String(order.tokenNumber || '');
-    const nameStr = (order.name || '').toLowerCase();
-    const phoneStr = (order.phone || '');
+  const filteredOrders = orders
+    .filter((order) => {
+      // Status Filter
+      if (statusFilter === 'Pending' && order.collectionStatus === 'collected') return false;
+      if (statusFilter === 'Collected' && order.collectionStatus !== 'collected') return false;
 
-    return tokenStr.includes(q) || nameStr.includes(q) || phoneStr.includes(q);
-  });
+      // Search Query Filter
+      if (!q) return true;
+      const tokenStr = String(order.tokenNumber || '');
+      const nameStr = (order.name || '').toLowerCase();
+      const phoneStr = order.phone || '';
+
+      return tokenStr.includes(q) || nameStr.includes(q) || phoneStr.includes(q);
+    })
+    .sort((a, b) => {
+      if (!q) {
+        return (a.tokenNumber || 0) - (b.tokenNumber || 0);
+      }
+
+      const getMatchScore = (order) => {
+        const tokenStr = String(order.tokenNumber || '');
+        const nameStr = (order.name || '').toLowerCase();
+        const phoneStr = order.phone || '';
+
+        if (tokenStr === q) return 1; // Exact token match (e.g. #1 when typing 1)
+        if (tokenStr.startsWith(q)) return 2; // Token starts with query (e.g. #10, #11 when typing 1)
+        if (tokenStr.includes(q)) return 3; // Token contains query (e.g. #21, #31 when typing 1)
+        if (nameStr.includes(q) || phoneStr.includes(q)) return 4; // Name or phone match
+        return 5;
+      };
+
+      const scoreA = getMatchScore(a);
+      const scoreB = getMatchScore(b);
+
+      if (scoreA !== scoreB) {
+        return scoreA - scoreB;
+      }
+
+      return (a.tokenNumber || 0) - (b.tokenNumber || 0);
+    });
 
   // Calculate System-Wide Statistics
   const totalOrdersCount = orders.length;

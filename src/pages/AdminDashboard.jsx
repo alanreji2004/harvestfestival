@@ -74,32 +74,60 @@ const AdminDashboard = () => {
     }
   };
 
-  // Multi-Filter Application
-  const filteredOrders = orders.filter((order) => {
-    // 1. Search Query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      const tokenStr = String(order.tokenNumber || '');
-      const nameStr = (order.name || '').toLowerCase();
-      const phoneStr = (order.phone || '');
-      const matchesSearch = tokenStr.includes(q) || nameStr.includes(q) || phoneStr.includes(q);
-      if (!matchesSearch) return false;
-    }
+  // Multi-Filter Application & Priority Sorting
+  const q = searchQuery.toLowerCase().trim();
 
-    // 2. Collection Status Filter
-    if (filterCollectionStatus === 'Pending' && order.collectionStatus === 'collected') return false;
-    if (filterCollectionStatus === 'Collected' && order.collectionStatus !== 'collected') return false;
+  const filteredOrders = orders
+    .filter((order) => {
+      // 1. Search Query
+      if (q) {
+        const tokenStr = String(order.tokenNumber || '');
+        const nameStr = (order.name || '').toLowerCase();
+        const phoneStr = order.phone || '';
+        const matchesSearch = tokenStr.includes(q) || nameStr.includes(q) || phoneStr.includes(q);
+        if (!matchesSearch) return false;
+      }
 
-    // 3. Payment Mode Filter
-    if (filterPaymentMode === 'gpay' && order.paymentMode !== 'gpay') return false;
-    if (filterPaymentMode === 'cash' && order.paymentMode !== 'cash') return false;
-    if (filterPaymentMode === 'uncollected' && order.collectionStatus === 'collected') return false;
+      // 2. Collection Status Filter
+      if (filterCollectionStatus === 'Pending' && order.collectionStatus === 'collected') return false;
+      if (filterCollectionStatus === 'Collected' && order.collectionStatus !== 'collected') return false;
 
-    // 4. Counter Filter
-    if (filterCounter !== 'All' && order.collectedByCounter !== filterCounter) return false;
+      // 3. Payment Mode Filter
+      if (filterPaymentMode === 'gpay' && order.paymentMode !== 'gpay') return false;
+      if (filterPaymentMode === 'cash' && order.paymentMode !== 'cash') return false;
+      if (filterPaymentMode === 'uncollected' && order.collectionStatus === 'collected') return false;
 
-    return true;
-  });
+      // 4. Counter Filter
+      if (filterCounter !== 'All' && order.collectedByCounter !== filterCounter) return false;
+
+      return true;
+    })
+    .sort((a, b) => {
+      if (!q) {
+        return (a.tokenNumber || 0) - (b.tokenNumber || 0);
+      }
+
+      const getMatchScore = (order) => {
+        const tokenStr = String(order.tokenNumber || '');
+        const nameStr = (order.name || '').toLowerCase();
+        const phoneStr = order.phone || '';
+
+        if (tokenStr === q) return 1; // Exact token match (e.g. #1 when typing 1)
+        if (tokenStr.startsWith(q)) return 2; // Token starts with query (e.g. #10, #11 when typing 1)
+        if (tokenStr.includes(q)) return 3; // Token contains query (e.g. #21, #31 when typing 1)
+        if (nameStr.includes(q) || phoneStr.includes(q)) return 4; // Name or phone match
+        return 5;
+      };
+
+      const scoreA = getMatchScore(a);
+      const scoreB = getMatchScore(b);
+
+      if (scoreA !== scoreB) {
+        return scoreA - scoreB;
+      }
+
+      return (a.tokenNumber || 0) - (b.tokenNumber || 0);
+    });
 
   // Calculate High-Level Collection Overview Statistics
   const totalOrdersCount = orders.length;
