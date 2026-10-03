@@ -54,7 +54,12 @@ export const createOrder = async (customerDetails) => {
         pricePerBiriyani: PRICE_PER_BIRIYANI,
         totalAmount: totalAmount,
         createdAt: serverTimestamp(),
-        orderDate: EVENT_DATE
+        orderDate: EVENT_DATE,
+        // Distribution & Payment tracking fields
+        collectionStatus: "pending",
+        paymentMode: null,
+        collectedAt: null,
+        collectedByCounter: null
       };
 
       transaction.set(newOrderRef, orderPayload);
@@ -84,6 +89,60 @@ export const createOrder = async (customerDetails) => {
     }
     
     throw new Error(userMessage);
+  }
+};
+
+/**
+ * Marks an order as collected using an atomic transaction to prevent double collection.
+ * @param {string} orderId - Document ID of order
+ * @param {string} paymentMode - "gpay" or "cash"
+ * @param {string} counterName - "Counter 1", "Counter 2", "Counter 3", or "Counter 4"
+ */
+export const collectOrder = async (orderId, paymentMode, counterName) => {
+  if (!orderId) throw new Error('Order ID is required.');
+  if (!paymentMode || (paymentMode !== 'gpay' && paymentMode !== 'cash')) {
+    throw new Error('Please select a valid payment mode (GPay or Cash).');
+  }
+  if (!counterName) throw new Error('Counter identifier is required.');
+
+  try {
+    const orderRef = doc(db, 'orders', orderId);
+
+    const updatedData = await runTransaction(db, async (transaction) => {
+      const orderSnap = await transaction.get(orderRef);
+      
+      if (!orderSnap.exists()) {
+        throw new Error('Order not found in database.');
+      }
+
+      const orderData = orderSnap.data();
+
+      // Guard against double collection
+      if (orderData.collectionStatus === 'collected') {
+        const collector = orderData.collectedByCounter || 'another counter';
+        throw new Error(`This order has already been collected at ${collector}.`);
+      }
+
+      const collectionPayload = {
+        collectionStatus: 'collected',
+        paymentMode: paymentMode.toLowerCase(),
+        collectedAt: serverTimestamp(),
+        collectedByCounter: counterName
+      };
+
+      transaction.update(orderRef, collectionPayload);
+
+      return {
+        ...orderData,
+        ...collectionPayload,
+        collectedAt: new Date()
+      };
+    });
+
+    return { success: true, order: updatedData };
+  } catch (error) {
+    console.error('Error marking order as collected:', error);
+    throw new Error(error.message || 'Failed to process collection. Please try again.');
   }
 };
 

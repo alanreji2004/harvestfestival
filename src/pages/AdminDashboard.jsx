@@ -8,12 +8,18 @@ import ConfirmModal from '../components/ConfirmModal';
 import { subscribeToOrders, deleteOrder, resetOrderCounter, getOrderCounter } from '../firebase/orders';
 import { formatCurrency, formatDate } from '../utils/validation';
 import { exportOrdersToExcel } from '../utils/exportExcel';
+import { VALID_COUNTERS } from '../utils/counterSession';
 
 const AdminDashboard = () => {
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [latestToken, setLatestToken] = useState(0);
+
+  // Admin Table Filters
+  const [filterCollectionStatus, setFilterCollectionStatus] = useState('All'); // 'All', 'Pending', 'Collected'
+  const [filterPaymentMode, setFilterPaymentMode] = useState('All'); // 'All', 'gpay', 'cash', 'uncollected'
+  const [filterCounter, setFilterCounter] = useState('All'); // 'All', 'Counter 1', 'Counter 2', ...
 
   // Modal states
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -37,12 +43,10 @@ const AdminDashboard = () => {
         setOrders(fetchedOrders);
         setLoadingOrders(false);
 
-        // Find highest token among orders or fetch counter
         if (fetchedOrders.length > 0) {
           const maxToken = Math.max(...fetchedOrders.map(o => o.tokenNumber || 0));
           setLatestToken(maxToken);
         } else {
-          // If no orders, fetch counter directly
           getOrderCounter().then(val => {
             if (isMounted) setLatestToken(val);
           });
@@ -70,21 +74,72 @@ const AdminDashboard = () => {
     }
   };
 
-  // Filter orders based on search query
+  // Multi-Filter Application
   const filteredOrders = orders.filter((order) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase().trim();
-    const tokenStr = String(order.tokenNumber || '');
-    const nameStr = (order.name || '').toLowerCase();
-    const phoneStr = (order.phone || '');
+    // 1. Search Query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const tokenStr = String(order.tokenNumber || '');
+      const nameStr = (order.name || '').toLowerCase();
+      const phoneStr = (order.phone || '');
+      const matchesSearch = tokenStr.includes(q) || nameStr.includes(q) || phoneStr.includes(q);
+      if (!matchesSearch) return false;
+    }
 
-    return tokenStr.includes(q) || nameStr.includes(q) || phoneStr.includes(q);
+    // 2. Collection Status Filter
+    if (filterCollectionStatus === 'Pending' && order.collectionStatus === 'collected') return false;
+    if (filterCollectionStatus === 'Collected' && order.collectionStatus !== 'collected') return false;
+
+    // 3. Payment Mode Filter
+    if (filterPaymentMode === 'gpay' && order.paymentMode !== 'gpay') return false;
+    if (filterPaymentMode === 'cash' && order.paymentMode !== 'cash') return false;
+    if (filterPaymentMode === 'uncollected' && order.collectionStatus === 'collected') return false;
+
+    // 4. Counter Filter
+    if (filterCounter !== 'All' && order.collectedByCounter !== filterCounter) return false;
+
+    return true;
   });
 
-  // Calculate stats
-  const totalOrders = orders.length;
-  const totalBiriyani = orders.reduce((sum, o) => sum + (Number(o.quantity) || 0), 0);
-  const totalAmount = orders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  // Calculate High-Level Collection Overview Statistics
+  const totalOrdersCount = orders.length;
+  const totalBiriyaniCount = orders.reduce((sum, o) => sum + (Number(o.quantity) || 0), 0);
+  
+  const collectedOrdersList = orders.filter(o => o.collectionStatus === 'collected');
+  const collectedOrdersCount = collectedOrdersList.length;
+  const remainingOrdersCount = totalOrdersCount - collectedOrdersCount;
+
+  const collectedBiriyaniCount = collectedOrdersList.reduce((sum, o) => sum + (Number(o.quantity) || 0), 0);
+  const remainingBiriyaniCount = totalBiriyaniCount - collectedBiriyaniCount;
+
+  // Payment Breakdown Statistics (Only collected orders count as received money)
+  const gpayOrders = collectedOrdersList.filter(o => o.paymentMode === 'gpay');
+  const gpayCount = gpayOrders.length;
+  const gpayTotalAmount = gpayOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+
+  const cashOrders = collectedOrdersList.filter(o => o.paymentMode === 'cash');
+  const cashCount = cashOrders.length;
+  const cashTotalAmount = cashOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+
+  const totalCollectedAmount = gpayTotalAmount + cashTotalAmount;
+
+  // Counter-Wise Breakdown Calculation
+  const counterSummaries = VALID_COUNTERS.map((counterName) => {
+    const counterOrders = collectedOrdersList.filter(o => o.collectedByCounter === counterName);
+    const ordersCount = counterOrders.length;
+    const biriyaniCount = counterOrders.reduce((sum, o) => sum + (Number(o.quantity) || 0), 0);
+    const gpayAmt = counterOrders.filter(o => o.paymentMode === 'gpay').reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+    const cashAmt = counterOrders.filter(o => o.paymentMode === 'cash').reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+
+    return {
+      counterName,
+      ordersCount,
+      biriyaniCount,
+      gpayAmt,
+      cashAmt,
+      totalAmt: gpayAmt + cashAmt
+    };
+  });
 
   // Handle Order Deletion
   const confirmDeleteOrder = async () => {
@@ -122,12 +177,20 @@ const AdminDashboard = () => {
     }
   };
 
-  // Handle Excel Export
-  const handleExportExcel = () => {
+  // Handle Excel Exports
+  const handleExportAllExcel = () => {
     try {
-      exportOrdersToExcel(orders);
+      exportOrdersToExcel(orders, 'harvest-festival-2026-all-biriyani-orders.xlsx');
     } catch (err) {
-      setActionError('Failed to export Excel file.');
+      setActionError('Failed to export all orders to Excel.');
+    }
+  };
+
+  const handleExportFilteredExcel = () => {
+    try {
+      exportOrdersToExcel(filteredOrders, 'harvest-festival-2026-filtered-biriyani-orders.xlsx');
+    } catch (err) {
+      setActionError('Failed to export filtered orders to Excel.');
     }
   };
 
@@ -146,10 +209,18 @@ const AdminDashboard = () => {
             <button 
               type="button" 
               className="btn btn-secondary" 
-              onClick={handleExportExcel}
+              onClick={handleExportAllExcel}
               disabled={orders.length === 0}
             >
-              Export Excel
+              Export All Orders
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              onClick={handleExportFilteredExcel}
+              disabled={filteredOrders.length === 0}
+            >
+              Export Current View
             </button>
             <button 
               type="button" 
@@ -182,102 +253,240 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Summary Statistics Cards */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <span className="stat-label">TOTAL ORDERS</span>
-            <span className="stat-value">{totalOrders}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">TOTAL BIRIYANI</span>
-            <span className="stat-value">{totalBiriyani}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">TOTAL AMOUNT</span>
-            <span className="stat-value">{formatCurrency(totalAmount)}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">LATEST TOKEN</span>
-            <span className="stat-value">{latestToken}</span>
-          </div>
-        </div>
-
-        {/* Search & Filter Bar */}
-        <div className="table-controls">
-          <div className="search-box">
-            <label htmlFor="order-search" className="sr-only">Search Orders</label>
-            <input
-              type="text"
-              id="order-search"
-              className="form-input search-input"
-              placeholder="Search orders by Name, Phone, or Token #"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button className="clear-search-btn" onClick={() => setSearchQuery('')}>
-                Clear
-              </button>
-            )}
-          </div>
-          <div className="search-count">
-            Showing {filteredOrders.length} of {totalOrders} orders
+        {/* SECTION 1: COLLECTION OVERVIEW */}
+        <div className="admin-dashboard-section mb-6">
+          <h3 className="admin-section-heading">COLLECTION OVERVIEW</h3>
+          <div className="stats-grid">
+            <div className="stat-card">
+              <span className="stat-label">TOTAL ORDERS</span>
+              <span className="stat-value">{totalOrdersCount}</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label">TOTAL BIRIYANI</span>
+              <span className="stat-value">{totalBiriyaniCount}</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label">COLLECTED ORDERS</span>
+              <span className="stat-value text-success-color">{collectedOrdersCount}</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label">REMAINING ORDERS</span>
+              <span className="stat-value text-warning-color">{remainingOrdersCount}</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label">COLLECTED BIRIYANI</span>
+              <span className="stat-value text-success-color">{collectedBiriyaniCount}</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label">REMAINING BIRIYANI</span>
+              <span className="stat-value text-warning-color">{remainingBiriyaniCount}</span>
+            </div>
           </div>
         </div>
 
-        {/* Realtime Orders Table */}
-        {loadingOrders ? (
-          <Loading message="Fetching realtime orders..." />
-        ) : filteredOrders.length === 0 ? (
-          <div className="empty-table-card">
-            {searchQuery ? (
-              <p>No orders match search query "<strong>{searchQuery}</strong>".</p>
-            ) : (
-              <p>No biriyani orders have been placed yet.</p>
-            )}
+        {/* SECTION 2: PAYMENT SUMMARY */}
+        <div className="admin-dashboard-section mb-6">
+          <h3 className="admin-section-heading">PAYMENT SUMMARY (COLLECTED REVENUE)</h3>
+          <div className="stats-grid payment-summary-grid">
+            <div className="stat-card payment-card">
+              <span className="stat-label">GPAY REVENUE</span>
+              <span className="stat-value">{formatCurrency(gpayTotalAmount)}</span>
+              <span className="stat-subtext">{gpayCount} Orders collected via GPay</span>
+            </div>
+            <div className="stat-card payment-card">
+              <span className="stat-label">CASH REVENUE</span>
+              <span className="stat-value">{formatCurrency(cashTotalAmount)}</span>
+              <span className="stat-subtext">{cashCount} Orders collected via Cash</span>
+            </div>
+            <div className="stat-card payment-card highlight-card">
+              <span className="stat-label">TOTAL COLLECTED REVENUE</span>
+              <span className="stat-value">{formatCurrency(totalCollectedAmount)}</span>
+              <span className="stat-subtext">Total from {collectedOrdersCount} collected orders</span>
+            </div>
           </div>
-        ) : (
-          <div className="table-responsive">
-            <table className="orders-table">
-              <thead>
-                <tr>
-                  <th>Token</th>
-                  <th>Name</th>
-                  <th>Phone</th>
-                  <th>Quantity</th>
-                  <th>Price</th>
-                  <th>Total</th>
-                  <th>Order Time</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredOrders.map((ord) => (
-                  <tr key={ord.id}>
-                    <td>
-                      <span className="token-pill">#{ord.tokenNumber}</span>
-                    </td>
-                    <td className="font-semibold">{ord.name}</td>
-                    <td>{ord.phone}</td>
-                    <td className="text-center font-semibold">{ord.quantity}</td>
-                    <td>₹{ord.pricePerBiriyani || 180}</td>
-                    <td className="font-semibold">{formatCurrency(ord.totalAmount)}</td>
-                    <td className="text-sm color-muted">{formatDate(ord.createdAt)}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-danger-outline"
-                        onClick={() => setDeleteTarget(ord)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
+        </div>
+
+        {/* SECTION 3: COUNTER-WISE SUMMARY */}
+        <div className="admin-dashboard-section mb-6">
+          <h3 className="admin-section-heading">COUNTER-WISE PERFORMANCE</h3>
+          <div className="counter-summary-grid">
+            {counterSummaries.map((c) => (
+              <div key={c.counterName} className="counter-breakdown-card">
+                <div className="counter-card-header">
+                  <span className="counter-name">{c.counterName}</span>
+                  <span className="counter-total-price">{formatCurrency(c.totalAmt)}</span>
+                </div>
+                <div className="counter-card-body">
+                  <div className="counter-stat-row">
+                    <span>Orders Collected:</span>
+                    <strong>{c.ordersCount}</strong>
+                  </div>
+                  <div className="counter-stat-row">
+                    <span>Biriyani Distributed:</span>
+                    <strong>{c.biriyaniCount}</strong>
+                  </div>
+                  <div className="counter-stat-row">
+                    <span>GPay Revenue:</span>
+                    <strong>{formatCurrency(c.gpayAmt)}</strong>
+                  </div>
+                  <div className="counter-stat-row">
+                    <span>Cash Revenue:</span>
+                    <strong>{formatCurrency(c.cashAmt)}</strong>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* SECTION 4: ORDERS TABLE WITH MULTI-FILTERS */}
+        <div className="admin-dashboard-section">
+          <div className="admin-section-header">
+            <h3 className="admin-section-heading">ORDER MANAGEMENT TABLE</h3>
+            <span className="search-count">
+              Showing {filteredOrders.length} of {totalOrdersCount} orders
+            </span>
+          </div>
+
+          {/* Filter Toolbar */}
+          <div className="admin-filter-bar mb-4">
+            <div className="search-box flex-1 min-w-200">
+              <input
+                type="text"
+                className="form-input search-input"
+                placeholder="Search Token #, Name, Phone..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button className="clear-search-btn" onClick={() => setSearchQuery('')}>Clear</button>
+              )}
+            </div>
+
+            <div className="filter-group">
+              <label htmlFor="filter-status" className="filter-label">Status:</label>
+              <select
+                id="filter-status"
+                className="form-input filter-select"
+                value={filterCollectionStatus}
+                onChange={(e) => setFilterCollectionStatus(e.target.value)}
+              >
+                <option value="All">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Collected">Collected</option>
+              </select>
+            </div>
+
+            <div className="filter-group">
+              <label htmlFor="filter-payment" className="filter-label">Payment:</label>
+              <select
+                id="filter-payment"
+                className="form-input filter-select"
+                value={filterPaymentMode}
+                onChange={(e) => setFilterPaymentMode(e.target.value)}
+              >
+                <option value="All">All Payment</option>
+                <option value="gpay">GPay</option>
+                <option value="cash">Cash</option>
+                <option value="uncollected">Not Collected</option>
+              </select>
+            </div>
+
+            <div className="filter-group">
+              <label htmlFor="filter-counter" className="filter-label">Counter:</label>
+              <select
+                id="filter-counter"
+                className="form-input filter-select"
+                value={filterCounter}
+                onChange={(e) => setFilterCounter(e.target.value)}
+              >
+                <option value="All">All Counters</option>
+                {VALID_COUNTERS.map((cnt) => (
+                  <option key={cnt} value={cnt}>{cnt}</option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+            </div>
           </div>
-        )}
+
+          {/* Realtime Table */}
+          {loadingOrders ? (
+            <Loading message="Fetching realtime orders..." />
+          ) : filteredOrders.length === 0 ? (
+            <div className="empty-table-card">
+              <p>No orders match the current search and filter selections.</p>
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <table className="orders-table">
+                <thead>
+                  <tr>
+                    <th>Token</th>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Biriyani Count</th>
+                    <th>Total Amount</th>
+                    <th>Order Time</th>
+                    <th>Collection Status</th>
+                    <th>Payment Mode</th>
+                    <th>Collected At</th>
+                    <th>Collected By</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredOrders.map((ord) => {
+                    const isCollected = ord.collectionStatus === 'collected';
+                    return (
+                      <tr key={ord.id}>
+                        <td>
+                          <span className="token-pill">#{ord.tokenNumber}</span>
+                        </td>
+                        <td className="font-semibold">{ord.name}</td>
+                        <td>{ord.phone}</td>
+                        <td className="text-center font-semibold">{ord.quantity}</td>
+                        <td className="font-semibold">{formatCurrency(ord.totalAmount)}</td>
+                        <td className="text-sm color-muted">{formatDate(ord.createdAt)}</td>
+                        <td>
+                          <span className={`status-pill ${isCollected ? 'pill-success' : 'pill-pending'}`}>
+                            {isCollected ? 'Collected' : 'Pending'}
+                          </span>
+                        </td>
+                        <td>
+                          {isCollected ? (
+                            <span className="payment-tag">
+                              {ord.paymentMode === 'gpay' ? 'GPay' : 'Cash'}
+                            </span>
+                          ) : (
+                            <span className="color-muted">-</span>
+                          )}
+                        </td>
+                        <td className="text-sm color-muted">
+                          {isCollected ? formatDate(ord.collectedAt) : '-'}
+                        </td>
+                        <td>
+                          {isCollected ? (
+                            <span className="counter-tag">{ord.collectedByCounter}</span>
+                          ) : (
+                            <span className="color-muted">-</span>
+                          )}
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-danger-outline"
+                            onClick={() => setDeleteTarget(ord)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </main>
 
       {/* Confirmation Modal for Order Deletion */}

@@ -4,6 +4,8 @@ import { AuthProvider } from './context/AuthContext';
 import Home from './pages/Home';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import CounterLogin from './pages/CounterLogin';
+import CounterDashboard from './pages/CounterDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -14,10 +16,12 @@ function App() {
           {/* Customer Order Page */}
           <Route path="/" element={<Home />} />
           
-          {/* Admin Login Page */}
+          {/* Counter Staff Portal Routes */}
+          <Route path="/counter/login" element={<CounterLogin />} />
+          <Route path="/counter" element={<CounterDashboard />} />
+
+          {/* Admin Authentication & Dashboard */}
           <Route path="/admin/login" element={<AdminLogin />} />
-          
-          {/* Protected Admin Dashboard */}
           <Route 
             path="/admin" 
             element={
