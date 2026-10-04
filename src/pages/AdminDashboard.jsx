@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 import Loading from '../components/Loading';
 import ConfirmModal from '../components/ConfirmModal';
 import RevokeModal from '../components/RevokeModal';
-import { subscribeToOrders, deleteOrder, resetOrderCounter, getOrderCounter, revokeOrderCollection } from '../firebase/orders';
+import { subscribeToOrders, deleteOrder, getOrderCounter, revokeOrderCollection } from '../firebase/orders';
 import { formatCurrency, formatDate } from '../utils/validation';
 import { exportOrdersToExcel } from '../utils/exportExcel';
 import { VALID_COUNTERS } from '../utils/counterSession';
@@ -28,9 +28,6 @@ const AdminDashboard = () => {
 
   const [revokeTarget, setRevokeTarget] = useState(null);
   const [isRevoking, setIsRevoking] = useState(false);
-
-  const [showResetModal, setShowResetModal] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
 
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
@@ -209,24 +206,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // Handle Token Counter Reset
-  const confirmResetCounter = async () => {
-    setIsResetting(true);
-    setActionError('');
-    setActionSuccess('');
-
-    try {
-      await resetOrderCounter();
-      setLatestToken(0);
-      setActionSuccess('Order token counter has been reset to 0. The next order will receive Token #1.');
-      setShowResetModal(false);
-    } catch (err) {
-      setActionError(err.message || 'Failed to reset token counter.');
-    } finally {
-      setIsResetting(false);
-    }
-  };
-
   // Handle Excel Exports
   const handleExportAllExcel = () => {
     try {
@@ -275,9 +254,9 @@ const AdminDashboard = () => {
             <button 
               type="button" 
               className="btn btn-danger-outline" 
-              onClick={() => setShowResetModal(true)}
+              onClick={() => navigate('/admin/danger-zone')}
             >
-              Reset Token Counter
+              Danger Zone ⚠️
             </button>
             <button 
               type="button" 
@@ -569,20 +548,6 @@ const AdminDashboard = () => {
         isLoading={isDeleting}
         onConfirm={confirmDeleteOrder}
         onCancel={() => setDeleteTarget(null)}
-      />
-
-      {/* Confirmation Modal for Reset Token Counter */}
-      <ConfirmModal
-        isOpen={showResetModal}
-        title="Reset Token Counter?"
-        message="This will make the next order receive token number 1. This action should only be performed when starting a new ordering period/event."
-        warningText="WARNING: Resetting the counter while existing orders are still active in the database can create duplicate token numbers for new customers."
-        confirmText="Confirm Reset Counter"
-        cancelText="Cancel"
-        isDanger={true}
-        isLoading={isResetting}
-        onConfirm={confirmResetCounter}
-        onCancel={() => setShowResetModal(false)}
       />
 
       {/* Revoke Confirmation Modal */}

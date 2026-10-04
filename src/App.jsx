@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import Home from './pages/Home';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminDangerZone from './pages/AdminDangerZone';
 import CounterLogin from './pages/CounterLogin';
 import CounterDashboard from './pages/CounterDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -27,6 +28,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/danger-zone" 
+            element={
+              <ProtectedRoute>
+                <AdminDangerZone />
               </ProtectedRoute>
             } 
           />
