@@ -1,0 +1,168 @@
+/* Order Tag Generator Modal Styles */
+.order-tags-modal-content {
+  max-width: 820px;
+  width: 95%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+.order-tags-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+.order-tags-modal-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-heading, #0f172a);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.order-tags-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-muted, #64748b);
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.order-tags-modal-close:hover {
+  background-color: var(--bg-hover, #f1f5f9);
+  color: var(--text-color, #0f172a);
+}
+
+.order-tags-mode-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+  padding-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.order-tags-tab-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color, #cbd5e1);
+  background-color: var(--bg-card, #ffffff);
+  color: var(--text-muted, #475569);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.order-tags-tab-btn:hover {
+  background-color: var(--bg-hover, #f8fafc);
+  color: var(--text-color, #0f172a);
+}
+
+.order-tags-tab-btn.active {
+  background-color: var(--primary-color, #ea580c);
+  color: #ffffff;
+  border-color: var(--primary-color, #ea580c);
+}
+
+.order-tags-preview-info {
+  background-color: var(--bg-subtle, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.order-tags-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: var(--text-color, #334155);
+}
+
+.order-tags-selection-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 250px;
+  max-height: 380px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.order-tags-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.order-tags-search-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.order-tags-selection-table-container {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 6px;
+  background-color: var(--bg-card, #ffffff);
+}
+
+.order-tags-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.order-tags-table th,
+.order-tags-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle, #f1f5f9);
+}
+
+.order-tags-table th {
+  position: sticky;
+  top: 0;
+  background-color: var(--table-header-bg, #f8fafc);
+  font-weight: 700;
+  color: var(--text-heading, #1e293b);
+  z-index: 1;
+  border-bottom: 2px solid var(--border-color, #cbd5e1);
+}
+
+.order-tags-table tr:hover {
+  background-color: var(--bg-hover, #f8fafc);
+}
+
+.order-tags-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.order-tags-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #e2e8f0);
+}

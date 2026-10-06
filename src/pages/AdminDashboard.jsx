@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import Loading from '../components/Loading';
 import ConfirmModal from '../components/ConfirmModal';
 import RevokeModal from '../components/RevokeModal';
+import OrderTagGeneratorModal from '../components/OrderTagGeneratorModal';
 import { subscribeToOrders, deleteOrder, getOrderCounter, revokeOrderCollection } from '../firebase/orders';
 import { formatCurrency, formatDate } from '../utils/validation';
 import { exportOrdersToExcel } from '../utils/exportExcel';
@@ -28,6 +29,8 @@ const AdminDashboard = () => {
 
   const [revokeTarget, setRevokeTarget] = useState(null);
   const [isRevoking, setIsRevoking] = useState(false);
+
+  const [isOrderTagsModalOpen, setIsOrderTagsModalOpen] = useState(false);
 
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
@@ -250,6 +253,14 @@ const AdminDashboard = () => {
               disabled={filteredOrders.length === 0}
             >
               Export Current View
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              onClick={() => setIsOrderTagsModalOpen(true)}
+              disabled={orders.length === 0}
+            >
+              Download Order Tags
             </button>
             <button 
               type="button" 
@@ -558,6 +569,13 @@ const AdminDashboard = () => {
         error={actionError}
         onConfirm={confirmRevokeOrder}
         onCancel={() => setRevokeTarget(null)}
+      />
+
+      {/* Order Tag Generator Modal */}
+      <OrderTagGeneratorModal
+        isOpen={isOrderTagsModalOpen}
+        orders={orders}
+        onClose={() => setIsOrderTagsModalOpen(false)}
       />
 
       <Footer />
