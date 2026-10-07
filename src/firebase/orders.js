@@ -8,7 +8,8 @@ import {
   orderBy, 
   deleteDoc,
   getDoc,
-  setDoc 
+  setDoc,
+  updateDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -97,8 +98,9 @@ export const createOrder = async (customerDetails) => {
  * @param {string} orderId - Document ID of order
  * @param {string} paymentMode - "gpay" or "cash"
  * @param {string} counterName - "Counter 1", "Counter 2", "Counter 3", or "Counter 4"
+ * @param {string} remark - Optional collection remark
  */
-export const collectOrder = async (orderId, paymentMode, counterName) => {
+export const collectOrder = async (orderId, paymentMode, counterName, remark = '') => {
   if (!orderId) throw new Error('Order ID is required.');
   if (!paymentMode || (paymentMode !== 'gpay' && paymentMode !== 'cash')) {
     throw new Error('Please select a valid payment mode (GPay or Cash).');
@@ -128,6 +130,7 @@ export const collectOrder = async (orderId, paymentMode, counterName) => {
         action: 'collected',
         paymentMode: paymentMode.toLowerCase(),
         counter: counterName,
+        remark: (remark || '').trim(),
         timestamp: new Date().toISOString()
       };
 
@@ -136,6 +139,7 @@ export const collectOrder = async (orderId, paymentMode, counterName) => {
         paymentMode: paymentMode.toLowerCase(),
         collectedAt: serverTimestamp(),
         collectedByCounter: counterName,
+        collectionRemark: (remark || '').trim(),
         collectionHistory: [...existingHistory, historyEntry]
       };
 
@@ -157,7 +161,7 @@ export const collectOrder = async (orderId, paymentMode, counterName) => {
 
 /**
  * Revokes an order collection using an atomic Firestore transaction.
- * Resets collectionStatus to "pending", clears paymentMode, collectedAt, collectedByCounter,
+ * Resets collectionStatus to "pending", clears paymentMode, collectedAt, collectedByCounter, collectionRemark,
  * and records an audit log entry in collectionHistory.
  * @param {string} orderId - Document ID of order
  * @param {string} performedBy - "Admin" or Counter name e.g. "Counter 2"
@@ -200,6 +204,7 @@ export const revokeOrderCollection = async (orderId, performedBy = 'Admin') => {
         paymentMode: null,
         collectedAt: null,
         collectedByCounter: null,
+        collectionRemark: '',
         collectionHistory: [...existingHistory, historyEntry]
       };
 
@@ -215,6 +220,52 @@ export const revokeOrderCollection = async (orderId, performedBy = 'Admin') => {
   } catch (error) {
     console.error('Error revoking order collection:', error);
     throw new Error(error.message || 'Failed to revoke order collection.');
+  }
+};
+
+/**
+ * Updates customer details for an existing order by Admin.
+ * Keeps token number, order ID, and collection status intact.
+ * Automatically recalculates totalAmount based on quantity * PRICE_PER_BIRIYANI.
+ * @param {string} orderId - Firestore document ID
+ * @param {Object} details - { name, phone, quantity }
+ */
+export const updateOrderDetails = async (orderId, details) => {
+  if (!orderId) throw new Error('Order ID is required.');
+  const { name, phone, quantity } = details;
+
+  const numQuantity = Number(quantity);
+  if (isNaN(numQuantity) || !Number.isInteger(numQuantity) || numQuantity < 1) {
+    throw new Error('Quantity must be a positive whole number (minimum 1).');
+  }
+
+  if (!name || !name.trim()) {
+    throw new Error('Customer name is required.');
+  }
+
+  if (!phone || !phone.trim()) {
+    throw new Error('Phone number is required.');
+  }
+
+  const totalAmount = numQuantity * PRICE_PER_BIRIYANI;
+
+  try {
+    const orderRef = doc(db, 'orders', orderId);
+
+    const updatePayload = {
+      name: name.trim(),
+      phone: phone.trim(),
+      quantity: numQuantity,
+      totalAmount: totalAmount,
+      updatedAt: serverTimestamp()
+    };
+
+    await updateDoc(orderRef, updatePayload);
+
+    return { success: true, payload: updatePayload };
+  } catch (error) {
+    console.error('Error updating order details in Firestore:', error);
+    throw new Error(error.message || 'Failed to update order details. Please try again.');
   }
 };
 

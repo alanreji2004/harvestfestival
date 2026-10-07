@@ -288,7 +288,7 @@ const OrderTagGeneratorModal = ({ isOpen, orders = [], onClose }) => {
                           </td>
                           <td className="font-semibold">{ord.name}</td>
                           <td>{ord.quantity}</td>
-                          <td>₹{ord.totalAmount}</td>
+                          <td>Rs. {ord.totalAmount}</td>
                           <td>
                             <span className={`status-pill ${isCollected ? 'pill-success' : 'pill-pending'}`}>
                               {isCollected ? 'Collected' : 'Pending'}

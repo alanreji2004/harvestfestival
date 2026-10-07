@@ -6,8 +6,9 @@ import Footer from '../components/Footer';
 import Loading from '../components/Loading';
 import ConfirmModal from '../components/ConfirmModal';
 import RevokeModal from '../components/RevokeModal';
+import EditOrderModal from '../components/EditOrderModal';
 import OrderTagGeneratorModal from '../components/OrderTagGeneratorModal';
-import { subscribeToOrders, deleteOrder, getOrderCounter, revokeOrderCollection } from '../firebase/orders';
+import { subscribeToOrders, deleteOrder, getOrderCounter, revokeOrderCollection, updateOrderDetails } from '../firebase/orders';
 import { formatCurrency, formatDate } from '../utils/validation';
 import { exportOrdersToExcel } from '../utils/exportExcel';
 import { VALID_COUNTERS } from '../utils/counterSession';
@@ -29,6 +30,9 @@ const AdminDashboard = () => {
 
   const [revokeTarget, setRevokeTarget] = useState(null);
   const [isRevoking, setIsRevoking] = useState(false);
+
+  const [editTarget, setEditTarget] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   const [isOrderTagsModalOpen, setIsOrderTagsModalOpen] = useState(false);
 
@@ -188,6 +192,24 @@ const AdminDashboard = () => {
       setActionError(err.message || 'Failed to revoke collection.');
     } finally {
       setIsRevoking(false);
+    }
+  };
+
+  // Handle Admin Order Edit
+  const confirmSaveEdit = async (updatedFields) => {
+    if (!editTarget) return;
+    setIsEditing(true);
+    setActionError('');
+    setActionSuccess('');
+
+    try {
+      await updateOrderDetails(editTarget.id, updatedFields);
+      setActionSuccess(`Order #${editTarget.tokenNumber} for ${updatedFields.name} was successfully updated.`);
+      setEditTarget(null);
+    } catch (err) {
+      setActionError(err.message || 'Failed to update order details.');
+    } finally {
+      setIsEditing(false);
     }
   };
 
@@ -470,6 +492,7 @@ const AdminDashboard = () => {
                     <th>Payment Mode</th>
                     <th>Collected At</th>
                     <th>Collected By</th>
+                    <th>Remark</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -515,8 +538,26 @@ const AdminDashboard = () => {
                             <span className="color-muted">-</span>
                           )}
                         </td>
+                        <td className="text-sm">
+                          {ord.collectionRemark ? (
+                            <span>{ord.collectionRemark}</span>
+                          ) : (
+                            <span className="color-muted">—</span>
+                          )}
+                        </td>
                         <td>
                           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline"
+                              style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                              onClick={() => {
+                                setActionError('');
+                                setEditTarget(ord);
+                              }}
+                            >
+                              Edit
+                            </button>
                             {isCollected && (
                               <button
                                 type="button"
@@ -569,6 +610,16 @@ const AdminDashboard = () => {
         error={actionError}
         onConfirm={confirmRevokeOrder}
         onCancel={() => setRevokeTarget(null)}
+      />
+
+      {/* Edit Order Modal */}
+      <EditOrderModal
+        isOpen={!!editTarget}
+        order={editTarget}
+        isLoading={isEditing}
+        error={actionError}
+        onSave={confirmSaveEdit}
+        onCancel={() => setEditTarget(null)}
       />
 
       {/* Order Tag Generator Modal */}

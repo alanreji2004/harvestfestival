@@ -11,7 +11,16 @@ const CollectModal = ({
   onCancel
 }) => {
   const [paymentMode, setPaymentMode] = useState('');
+  const [remark, setRemark] = useState('');
   const [validationError, setValidationError] = useState('');
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setPaymentMode('');
+      setRemark('');
+      setValidationError('');
+    }
+  }, [isOpen, order]);
 
   if (!isOpen || !order) return null;
 
@@ -22,7 +31,7 @@ const CollectModal = ({
       return;
     }
     setValidationError('');
-    onConfirm(paymentMode);
+    onConfirm(paymentMode, remark);
   };
 
   return (
@@ -103,6 +112,22 @@ const CollectModal = ({
                 <span className="payment-title">Cash</span>
               </label>
             </div>
+          </div>
+
+          <div className="form-group mb-4" style={{ textAlign: 'left' }}>
+            <label className="form-label" htmlFor="collection-remark">
+              Remark (Optional)
+            </label>
+            <textarea
+              id="collection-remark"
+              className="form-input"
+              rows="2"
+              placeholder="Add any remark regarding this collection..."
+              value={remark}
+              onChange={(e) => setRemark(e.target.value)}
+              disabled={isLoading}
+              style={{ resize: 'vertical' }}
+            />
           </div>
 
           <div className="modal-actions">

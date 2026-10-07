@@ -129,14 +129,14 @@ const CounterDashboard = () => {
     .reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
 
   // Handle Marking as Collected via Modal
-  const handleConfirmCollection = async (paymentMode) => {
+  const handleConfirmCollection = async (paymentMode, remark) => {
     if (!targetOrder || !activeCounter) return;
     setIsProcessing(true);
     setModalError('');
     setToastMessage({ type: '', text: '' });
 
     try {
-      await collectOrder(targetOrder.id, paymentMode, activeCounter);
+      await collectOrder(targetOrder.id, paymentMode, activeCounter, remark);
       setToastMessage({
         type: 'success',
         text: `Token #${targetOrder.tokenNumber} (${targetOrder.name}) successfully marked as COLLECTED via ${paymentMode.toUpperCase()}!`
@@ -314,6 +314,11 @@ const CounterDashboard = () => {
                       <div className="collected-audit-info">
                         <div>Payment: <strong>{ord.paymentMode === 'gpay' ? 'GPay' : 'Cash'}</strong></div>
                         <div>Collected by: <strong>{ord.collectedByCounter}</strong></div>
+                        {ord.collectionRemark && (
+                          <div style={{ marginTop: '2px', fontSize: '0.8rem', color: '#4a5568', fontStyle: 'italic' }}>
+                            Remark: "{ord.collectionRemark}"
+                          </div>
+                        )}
                         <div className="time-subtext">{formatDate(ord.collectedAt)}</div>
                       </div>
                     ) : (

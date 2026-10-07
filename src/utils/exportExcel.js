@@ -53,7 +53,8 @@ export const exportOrdersToExcel = (orders, customFilename = 'harvest-festival-2
       'Collection Status': statusDisplay,
       'Payment Mode': paymentDisplay,
       'Collected At': collectedAtFormatted,
-      'Collected By Counter': order.collectedByCounter || '-'
+      'Collected By Counter': order.collectedByCounter || '-',
+      'Collection Remark': order.collectionRemark || ''
     };
   });
 
@@ -73,7 +74,8 @@ export const exportOrdersToExcel = (orders, customFilename = 'harvest-festival-2
     { wch: 18 }, // Collection Status
     { wch: 16 }, // Payment Mode
     { wch: 22 }, // Collected At
-    { wch: 20 }  // Collected By Counter
+    { wch: 20 }, // Collected By Counter
+    { wch: 30 }  // Collection Remark
   ];
 
   const workbook = XLSX.utils.book_new();
