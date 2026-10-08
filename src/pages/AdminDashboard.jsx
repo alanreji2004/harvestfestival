@@ -284,13 +284,13 @@ const AdminDashboard = () => {
             >
               Download Order Tags
             </button>
-            <button 
+            {/* <button 
               type="button" 
               className="btn btn-danger-outline" 
               onClick={() => navigate('/admin/danger-zone')}
             >
               Danger Zone ⚠️
-            </button>
+            </button> */}
             <button 
               type="button" 
               className="btn btn-outline" 
