@@ -57,7 +57,7 @@ const SearchToken = () => {
           <button 
             type="button" 
             className="btn btn-secondary btn-sm"
-            onClick={() => navigate('/bookingclosed')}
+            onClick={() => navigate('/')}
           >
             &larr; Back to Booking Status
           </button>
