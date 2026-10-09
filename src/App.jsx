@@ -17,7 +17,8 @@ function App() {
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           {/* Customer Order Page */}
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<BookingClosed />} />
+          <Route path="/addafterdeadline" element={<Home />} />
           
           {/* Booking Closed & Token Search Pages */}
           <Route path="/bookingclosed" element={<BookingClosed />} />
