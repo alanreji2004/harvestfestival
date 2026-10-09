@@ -9,9 +9,12 @@ import {
   deleteDoc,
   getDoc,
   setDoc,
-  updateDoc
+  updateDoc,
+  where,
+  getDocs
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { validatePhone } from '../utils/validation';
 
 const EVENT_DATE = "2026-10-11";
 const PRICE_PER_BIRIYANI = 180;
@@ -337,3 +340,47 @@ export const getOrderCounter = async () => {
     return 0;
   }
 };
+
+/**
+ * Search orders by customer mobile number.
+ * Accepts 10-digit number or formatted phone string.
+ */
+export const getOrdersByPhone = async (phoneInput) => {
+  if (!phoneInput || !phoneInput.trim()) {
+    throw new Error('Please enter a mobile number to search.');
+  }
+
+  const phoneVal = validatePhone(phoneInput);
+  const searchPhone = phoneVal.isValid ? phoneVal.normalizedPhone : phoneInput.trim();
+
+  try {
+    const ordersRef = collection(db, 'orders');
+    // Query with normalized phone number
+    const q = query(ordersRef, where('phone', '==', searchPhone));
+    const snapshot = await getDocs(q);
+
+    let ordersList = snapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }));
+
+    // If no results and original input was different (e.g. contained spaces or formatting), try raw input match
+    if (ordersList.length === 0 && searchPhone !== phoneInput.trim()) {
+      const qAlt = query(ordersRef, where('phone', '==', phoneInput.trim()));
+      const altSnap = await getDocs(qAlt);
+      ordersList = altSnap.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data()
+      }));
+    }
+
+    // Sort orders by token number ascending
+    ordersList.sort((a, b) => (a.tokenNumber || 0) - (b.tokenNumber || 0));
+
+    return ordersList;
+  } catch (error) {
+    console.error('Error fetching orders by phone:', error);
+    throw new Error('Failed to search orders. Please check your internet connection and try again.');
+  }
+};
+

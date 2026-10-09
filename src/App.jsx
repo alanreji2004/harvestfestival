@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Home from './pages/Home';
+import BookingClosed from './pages/BookingClosed';
+import SearchToken from './pages/SearchToken';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminDangerZone from './pages/AdminDangerZone';
@@ -17,6 +19,11 @@ function App() {
           {/* Customer Order Page */}
           <Route path="/" element={<Home />} />
           
+          {/* Booking Closed & Token Search Pages */}
+          <Route path="/bookingclosed" element={<BookingClosed />} />
+          <Route path="/search-token" element={<SearchToken />} />
+          <Route path="/search" element={<SearchToken />} />
+
           {/* Counter Staff Portal Routes */}
           <Route path="/counter/login" element={<CounterLogin />} />
           <Route path="/counter" element={<CounterDashboard />} />
