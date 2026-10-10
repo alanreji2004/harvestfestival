@@ -9,6 +9,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminDangerZone from './pages/AdminDangerZone';
 import CounterLogin from './pages/CounterLogin';
 import CounterDashboard from './pages/CounterDashboard';
+import EnquiryCounter from './pages/EnquiryCounter';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -24,6 +25,9 @@ function App() {
           <Route path="/bookingclosed" element={<BookingClosed />} />
           <Route path="/search-token" element={<SearchToken />} />
           <Route path="/search" element={<SearchToken />} />
+
+          {/* Enquiry Counter Page */}
+          <Route path="/enquiry" element={<EnquiryCounter />} />
 
           {/* Counter Staff Portal Routes */}
           <Route path="/counter/login" element={<CounterLogin />} />

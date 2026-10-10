@@ -182,7 +182,15 @@ const CounterDashboard = () => {
             <h2 className="counter-main-title">BIRIYANI DISTRIBUTION</h2>
             <p className="counter-subtitle">Realtime Counter Management System</p>
           </div>
-          <div>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => navigate('/enquiry')}
+              title="Open Biriyani Order Enquiry Counter"
+            >
+              Enquiry Desk
+            </button>
             <button
               type="button"
               className="btn btn-secondary btn-sm"
